@@ -98,6 +98,7 @@ prepareConstraints <- function(graph){
   addConstraint(graph, "Feature", "name");
   addConstraint(graph, "Option", "optionId");
   addConstraint(graph, "Option", "name");
+  addConstraint(graph, "Session", "sessionId");
 }
 
 createOptions <- function(graph, optionObject, transactionMax = 1000){
