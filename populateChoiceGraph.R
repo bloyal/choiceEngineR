@@ -1,10 +1,20 @@
 #populateChoiceGaph.R
 #Takes in option object and merges it with choice graph
 library(RNeo4j);
+library(tm);
+library(reshape);
+library(stringr);
 
+buildExampleGraph <- function(){
+  newOptions<-getTestOptionObject();
+  graph = startGraph("http://localhost:7474/db/data/");
+  clear(graph, input=FALSE);
+  prepareConstraints(graph);
+  createOptions(graph, newOptions);
+}
 
 getTestOptionObject <- function(){
-  newOptions <- list(
+  list(
     list (
       #required elements
       name = "Red Firetruck",
@@ -12,12 +22,18 @@ getTestOptionObject <- function(){
       provider = "Hasbro",
       labels = "toys,plastic",
       keywords = "fire, rescue, emergency, plastic, wheels, red",
+      creatorUid = "bloyal",
+      creationDt = Sys.time(),
       #optional elements
-      date = "1/2/2015",
+      OptionDate = "1/2/2015",
       imageSrc = "http://ecx.images-amazon.com/images/I/61tDtJTMemL._SY355_.jpg",
-      locationName = "Gateway Arch",
-      locationAddress = "11 North 4th Street, St. Louis, MO 63102",
-      locationGPS = "38.624691,-90.184776",
+      locations = list(
+        list(
+          locationName = "Gateway Arch",
+          locationAddress = "11 North 4th Street, St. Louis, MO 63102",
+          locationGPS = "38.624691,-90.184776"
+          )
+        ),
       measures = list (
         "price" = list (
           "value"=11.95,
@@ -39,6 +55,15 @@ getTestOptionObject <- function(){
       provider = "Playmobile",
       labels = "toys, children",
       keywords = "ocean, underwater, sea, Beatles, submarine, nautical, yellow",
+      creatorUid = "bloyal",
+      creationDt = Sys.time(),
+      locations = list(
+        list(
+          locationName = "Gateway Arch",
+          locationAddress = "11 North 4th Street, St. Louis, MO 63102",
+          locationGPS = "38.624691,-90.184776"
+        )
+      ),
       measures = list(
         "price" = list (
           "value"=15.25,
@@ -56,6 +81,8 @@ getTestOptionObject <- function(){
       provider = "Nabisco",
       labels = "drink",
       keywords = "prince, yummy, purple, sea, red, music, drink",
+      creatorUid = "bloyal",
+      creationDt = Sys.time(),
       measures = list (
         "price" = list (
           "value" = 3.99,
@@ -66,39 +93,30 @@ getTestOptionObject <- function(){
     )
 }
 
+prepareConstraints <- function(graph){
+  addConstraint(graph, "Feature", "featureId");
+  addConstraint(graph, "Feature", "name");
+  addConstraint(graph, "Option", "optionId");
+  addConstraint(graph, "Option", "name");
+}
+
 createOptions <- function(graph, optionObject, transactionMax = 1000){
 
   optionObject <- updateOptionLabels(optionObject); #Update option list to match syntax
   optionObject <- updateKeywords(optionObject); #Add name and description words to keywords
+  createBulkOptions(graph, optionObject, transactionMax);
+  createBulkFeatures(graph, optionObject, transactionMax);
+  createBulkLocations(graph, optionObject, transactionMax);
+  createOptionFeatureRelationships(graph, optionObject, transactionMax);
+}
+
+createBulkOptions <- function(graph, optionObject, transactionMax){
+  
   t <- newTransaction(graph);
-  transactionCounter <- 0
+  transactionCounter <- 0;
   for (i in 1:length(optionObject)){
     transactionCounter <- transactionCounter + 1;
-    query <- paste("MATCH (o:Option) 
-              WITH count(o) as max_option_id
-              CREATE (o:",optionObject[[i]]$labels, " {
-              optionId: max_option_id + 1,
-              name:{name}, 
-              description:{description},
-              provider:{provider},
-              keywords:{keywords},
-              date:{date},
-              imageSrc:{imageSrc},
-              locationName:{locationName},
-              locationAddress:{locationAddress},
-              locationGPS:{locationGPS}
-              })", sep="");
-    appendCypher(t, query, 
-                  name = optionObject[[i]]$name, 
-                  description = optionObject[[i]]$description,
-                  provider = optionObject[[i]]$provider,
-                  keywords = optionObject[[i]]$keywords,
-                  date = optionObject[[i]]$date,
-                  imageSrc = optionObject[[i]]$imageSrc,
-                  locationName = optionObject[[i]]$locationName,
-                  locationAddress = optionObject[[i]]$locationAddress,
-                  locationGPS = optionObject[[i]]$locationGPS
-                  );
+    createOptionNode(t, optionObject[[i]]);
     if (transactionCounter == transactionMax) {
       commit(t);
       t <- newTransaction(graph);
@@ -107,6 +125,35 @@ createOptions <- function(graph, optionObject, transactionMax = 1000){
   }
   commit(t);
   
+}
+
+createOptionNode <- function(transaction, option){
+  query <- paste("MATCH (o:Option) 
+              WITH count(o) as max_option_id
+              CREATE (o:",option$labels, " {
+              optionId: max_option_id + 1,
+              name:{name}, 
+              description:{description},
+              provider:{provider},
+              keywords:{keywords},
+              creatorUid:{creatorUid},
+              creationDt:{creationDt},
+              optionDate:{optionDate},
+              imageSrc:{imageSrc}
+              })", sep="");
+  appendCypher(transaction, query, 
+               name = option$name, 
+               description = option$description,
+               provider = option$provider,
+               keywords = option$keywords,
+               creatorUid = option$creatorUid,
+               creationDt = option$creationDt,
+               optionDate = option$optionDate,
+               imageSrc = option$imageSrc,
+               locationName = option$locationName,
+               locationAddress = option$locationAddress,
+               locationGPS = option$locationGPS
+  );
 }
 
 updateOptionLabels <- function(optionList){
@@ -125,9 +172,6 @@ updateKeywords <- function(optionList){
 }
 
 consolidateKeywords<- function(name, description, keywords) {
-  library(tm);
-  library(reshape);
-  library(stringr);
   
   #combine names, descriptions, and user-defined keywords
   keywords<-paste(name, description, keywords);
@@ -140,10 +184,114 @@ consolidateKeywords<- function(name, description, keywords) {
   corp <- tm_map(corp, stripWhitespace)
   corp <- tm_map(corp, stemDocument)
   keywords<-as.character(unlist(sapply(corp, `[`, "content")), stringsAsFactors=F)
-  
   #Tokenize
   keywords<-lapply(keywords,scan_tokenizer);
   keywords<-lapply(keywords,unique);
   keywords<- paste(unlist(keywords), collapse=",");
+}
+
+createBulkFeatures <- function(graph, optionObject, transactionMax){
+  
+  t <- newTransaction(graph);
+  transactionCounter <- 0;
+  features <- getConsolidatedFeatureVector(optionObject);
+  for (i in 1:length(features)){
+    transactionCounter <- transactionCounter + 1;
+    createFeatureNode(t, features[i]);
+    if (transactionCounter == transactionMax) {
+      commit(t);
+      t <- newTransaction(graph);
+      transactionCounter <- 0;
+    }
+  }
+  commit(t);
+  
+}
+
+getConsolidatedFeatureVector <- function(optionObject){
+  combinedFeatures <- paste(unlist(lapply(optionObject, function(x){x$keywords})),collapse=",");
+  combinedFeatures <- unique(unlist(strsplit(combinedFeatures,",")));
+}
+
+createFeatureNode <- function(transaction, feature){
+  query <- paste("MATCH (f:Feature) 
+                 WITH count(f) as max_feature_id
+                 CREATE (f:Feature {
+                 featureId: max_feature_id + 1,
+                 name:{name}
+                 })", sep="");
+  appendCypher(transaction, query, name = feature);
+}
+
+createBulkLocations <- function(graph, optionObject, transactionMax){
+  
+  t <- newTransaction(graph);
+  transactionCounter <- 0;
+  locations <- getCondolidatedLocationList(optionObject);
+  for (i in 1:length(locations)){
+    transactionCounter <- transactionCounter + 1;
+    createLocationNode(t, locations[[i]]);
+    if (transactionCounter == transactionMax) {
+      commit(t);
+      t <- newTransaction(graph);
+      transactionCounter <- 0;
+    }
+  }
+  commit(t);
+  
+}
+
+getCondolidatedLocationList <- function(optionObject){
+  locations<-unlist(lapply(optionObject, function(x){x$locations}),recursive=FALSE);
+  locations<-unique(locations);
+}
+
+createLocationNode <- function(transaction, location){
+  query <- paste("MATCH (f:Feature) 
+                 WITH count(f) as max_feature_id
+                 CREATE (f:Feature:Location {
+                 featureId: max_feature_id + 1,
+                 name:{name},
+                  address:{address},
+                  gps:{gps}
+                 })", sep="");
+  appendCypher(transaction, query, 
+               name = location$locationName, 
+               address=location$locationAddress,
+               gps=location$locationGPS);
+}
+
+createOptionFeatureRelationships <- function(graph, optionObject, transactionMax){
+  
+  t <- newTransaction(graph);
+  transactionCounter <- 0;
+  links <- getOptionFeatureLinks(optionObject);
+  for (i in 1:nrow(links)){
+    transactionCounter <- transactionCounter + 1;
+    createOptionFeatureRelationship(t, links[i,]);
+    if (transactionCounter == transactionMax) {
+      commit(t);
+      t <- newTransaction(graph);
+      transactionCounter <- 0;
+    }
+  }
+  commit(t);
+}
+
+getOptionFeatureLinks <- function(optionObject){
+
+  links<-lapply(optionObject, function(x) unlist(strsplit(x$keywords,",")));
+  names(links)<-unlist(lapply(optionObject, function(x) x$name));
+  links<-melt(links);
+  names(links)<-c("feature","option");
+  links;
+}
+
+createOptionFeatureRelationship <- function(transaction, link){
+
+  query <- "MATCH (o:Option {name:{name}}), (f:Feature {name:{feature}}) 
+            MERGE (o)-[:HAS_FEATURE {strength:1}]->(f)";
+  
+  appendCypher(transaction, query, name = link$option, feature = link$feature);
   
 }
