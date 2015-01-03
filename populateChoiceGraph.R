@@ -25,13 +25,19 @@ getTestOptionObject <- function(){
       creatorUid = "bloyal",
       creationDt = Sys.time(),
       #optional elements
-      OptionDate = "1/2/2015",
+      optionDate = "2015-01-03",
+      optionTime = "5:00 PM",
       imageSrc = "http://ecx.images-amazon.com/images/I/61tDtJTMemL._SY355_.jpg",
       locations = list(
         list(
           locationName = "Gateway Arch",
           locationAddress = "11 North 4th Street, St. Louis, MO 63102",
           locationGPS = "38.624691,-90.184776"
+          ),
+        list(
+          locationName = "Busch Stadium",
+          locationAddress = "800 N Broadway, St. Louis, MO 63102",
+          locationGPS = "33.624691,-94.184776"
           )
         ),
       measures = list (
@@ -57,6 +63,8 @@ getTestOptionObject <- function(){
       keywords = "ocean, underwater, sea, Beatles, submarine, nautical, yellow",
       creatorUid = "bloyal",
       creationDt = Sys.time(),
+      optionDate = "2015-01-02",
+      optionTime = "7:00 PM",
       locations = list(
         list(
           locationName = "Gateway Arch",
@@ -107,8 +115,10 @@ createOptions <- function(graph, optionObject, transactionMax = 1000){
   optionObject <- updateKeywords(optionObject); #Add name and description words to keywords
   createBulkOptions(graph, optionObject, transactionMax);
   createBulkFeatures(graph, optionObject, transactionMax);
-  createBulkLocations(graph, optionObject, transactionMax);
+  createBulkLocations(graph, optionObject, transactionMax); 
+  #createBulkDates(graph, optionObject, transactionMax); #At one point, thought about storing date as feature
   createOptionFeatureRelationships(graph, optionObject, transactionMax);
+  createOptionLocationRelationships(graph, optionObject, transactionMax);
 }
 
 createBulkOptions <- function(graph, optionObject, transactionMax){
@@ -262,6 +272,43 @@ createLocationNode <- function(transaction, location){
                gps=location$locationGPS);
 }
 
+createBulkDates <- function(graph, optionObject, transactionMax){
+  
+  t <- newTransaction(graph);
+  transactionCounter <- 0;
+  dates <- getCondolidatedDateList(optionObject);
+  for (i in 1:length(dates)){
+    transactionCounter <- transactionCounter + 1;
+    createDateNode(t, dates[i]);
+    if (transactionCounter == transactionMax) {
+      commit(t);
+      t <- newTransaction(graph);
+      transactionCounter <- 0;
+    }
+  }
+  commit(t);
+  
+}
+
+getCondolidatedDateList <- function(optionObject){
+  
+  fullDates<-unlist(lapply(optionObject, function(x){x$optionDate}),recursive=FALSE);
+  fullDates <- strptime(fullDates, format="%Y-%m-%d %I:%M %p")
+  days <- format(dates2, format="%Y-%m-%d")
+}
+
+createDateNode <- function(transaction, date){
+  
+  query <- paste("MATCH (f:Feature) 
+                 WITH count(f) as max_feature_id
+                 CREATE (f:Feature:Date {
+                 featureId: max_feature_id + 1,
+                 name:{name}
+                 })", sep="");
+  appendCypher(transaction, query, name = date);
+  
+}
+
 createOptionFeatureRelationships <- function(graph, optionObject, transactionMax){
   
   t <- newTransaction(graph);
@@ -294,5 +341,46 @@ createOptionFeatureRelationship <- function(transaction, link){
             MERGE (o)-[:HAS_FEATURE {strength:1}]->(f)";
   
   appendCypher(transaction, query, name = link$option, feature = link$feature);
+  
+}
+
+createOptionLocationRelationships<- function(graph, optionObject, transactionMax){
+  
+  t <- newTransaction(graph);
+  transactionCounter <- 0;
+  links <- getOptionLocationLinks(optionObject);
+  for (i in 1:nrow(links)){
+    transactionCounter <- transactionCounter + 1;
+    createOptionLocationRelationship(t, links[i,]);
+    if (transactionCounter == transactionMax) {
+      commit(t);
+      t <- newTransaction(graph);
+      transactionCounter <- 0;
+    }
+  }
+  commit(t);
+}
+
+
+getOptionLocationLinks <- function(optionObject){
+  
+  locList <- unlist(lapply(optionObject, function(option){
+    lapply(option$locations, function(loc){
+      row<- c(option$name, loc$locationName);
+    })
+  }),recursive=FALSE);
+  
+  option<-unlist(lapply(locList,function(x) x[1]));
+  location<-unlist(lapply(locList,function(x) x[2]));
+  links<-data.frame(option, location);
+  links;
+}
+
+createOptionLocationRelationship <- function(transaction, link){
+  
+  query <- "MATCH (o:Option {name:{name}}), (l:Location {name:{location}}) 
+  MERGE (o)-[:HAS_FEATURE {strength:1}]->(l)";
+  
+  appendCypher(transaction, query, name = link$option, location = link$location);
   
 }
