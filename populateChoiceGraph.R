@@ -21,10 +21,10 @@ getTestOptionObject <- function(){
       description = "The new Red Firetruck from Hasbro provides children with hours of rescue fun.",
       provider = "Hasbro",
       labels = "toys,plastic",
-      keywords = "fire, rescue, emergency, plastic, wheels, red",
       creatorUid = "bloyal",
       creationDt = Sys.time(),
       #optional elements
+      keywords = "fire, rescue, emergency, plastic, wheels, red",
       optionDate = "2015-01-03",
       optionTime = "5:00 PM",
       imageSrc = "http://ecx.images-amazon.com/images/I/61tDtJTMemL._SY355_.jpg",
@@ -56,13 +56,15 @@ getTestOptionObject <- function(){
         )
       ),
     list(
+      #required elements
       name = "Yellow Submarine",
       description = "A favorite from across (and under) the ocean, this yellow submarine is a great place to live, work, and play in!",
       provider = "Playmobile",
       labels = "toys, children",
-      keywords = "ocean, underwater, sea, Beatles, submarine, nautical, yellow",
       creatorUid = "bloyal",
       creationDt = Sys.time(),
+      #optional elements
+      keywords = "ocean, underwater, sea, Beatles, submarine, nautical, yellow",
       optionDate = "2015-01-02",
       optionTime = "7:00 PM",
       locations = list(
@@ -84,13 +86,15 @@ getTestOptionObject <- function(){
         )
       ),
     list (
+      #required elements
       name = "Purple Rain",
       description = "Your child's favorite symbole of love and friendship, Purple Rain is a delicious grape drink, now with 99% vitamin C.is a great place to live, work, and play in!",
       provider = "Nabisco",
       labels = "drink",
-      keywords = "prince, yummy, purple, sea, red, music, drink",
       creatorUid = "bloyal",
       creationDt = Sys.time(),
+      #optional elements
+      keywords = "prince, yummy, purple, sea, red, music, drink",
       measures = list (
         "price" = list (
           "value" = 3.99,
