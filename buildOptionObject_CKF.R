@@ -11,12 +11,12 @@ getHTML <- function(url){
 scrapeCkfMenu <- function(html){
   
   #Extract menu item titles based on css class
-  menu_titles <- ckf_menu %>%
+  menu_titles <- html %>%
     html_nodes(".item-title") %>%
     html_text();
   
   #Extract menu item descriptions based on css class
-  menu_descriptions <- ckf_menu %>%
+  menu_descriptions <- html %>%
     html_nodes(".item-description") %>%
     html_text();
   
@@ -41,26 +41,19 @@ scrapeCkfMenu <- function(html){
   #Add provider info and labels
   ckf_items <- cbind(ckf_items, provider=rep("The Cheesecake Factory", nrow(ckf_items)));
   ckf_items <- cbind(ckf_items, labels=rep("Food", nrow(ckf_items)));
-  
+
   #transform into option object
-  testlist <- split(ckf_items, as.integer(rownames(ckf_items)))
-  
-  test <- split(ckf_items, list(ckf_items$name, ckf_items$descripion, ckf_items$provider, ckf_items$labels));
-  
-  test3 <- dlply(ckf_items, .(name, description, provider, labels));
-  
-  test2 <- lapply(testlist, function(x){
-    
-    
-  })
-  
-  test <- apply(ckf_items, 1, function(item){
-    list<-list(
-      c(name = item[1],
-      description = item[2],
-      provider = item[3],
-      labels = item[4])
+  object<-list();
+  for( i in 1:nrow(ckf_items[1:10,])){
+    a<-list(
+      name = ckf_items[[i,1]],
+      description = ckf_items[[i,2]],
+      provider = ckf_items[[i,3]],
+      labels = ckf_items[[i,4]],
+      creatorUid = "bloyal",
+      creationDt = Sys.time()
       );
-    print(list);
-  })
+    object[[i]]<-a;
+  };
+  object;
 }

@@ -5,6 +5,16 @@ library(tm);
 library(reshape);
 library(stringr);
 
+source("~/GitHub/choiceEngineR/buildOptionObject_CKF.R");
+
+buildCkfGraph <- function(ckf_menu){
+  newOptions<-scrapeCkfMenu(ckf_menu);
+  graph = startGraph("http://localhost:7474/db/data/");
+  clear(graph, input=FALSE);
+  prepareConstraints(graph);
+  createOptions(graph, newOptions);
+}
+
 buildExampleGraph <- function(){
   newOptions<-getTestOptionObject();
   graph = startGraph("http://localhost:7474/db/data/");
@@ -156,6 +166,7 @@ createOptionNode <- function(transaction, option){
               optionDate:{optionDate},
               imageSrc:{imageSrc}
               })", sep="");
+  option$name
   appendCypher(transaction, query, 
                name = option$name, 
                description = option$description,
