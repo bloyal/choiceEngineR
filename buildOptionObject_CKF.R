@@ -38,13 +38,16 @@ scrapeCkfMenu <- function(html){
   #Remove duplicate records
   ckf_items<-unique(ckf_items);
   
+  #Remove Renees Special
+  ckf_items <- ckf_items[ ckf_items$name!="Renees Special",];
+  
   #Add provider info and labels
   ckf_items <- cbind(ckf_items, provider=rep("The Cheesecake Factory", nrow(ckf_items)));
   ckf_items <- cbind(ckf_items, labels=rep("Food", nrow(ckf_items)));
 
   #transform into option object
   object<-list();
-  for( i in 1:nrow(ckf_items[1:10,])){
+  for( i in 1:nrow(ckf_items)){
     a<-list(
       name = ckf_items[[i,1]],
       description = ckf_items[[i,2]],
