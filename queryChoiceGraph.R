@@ -2,13 +2,14 @@
 
 library(RNeo4j);
 
-graph = startGraph("http://localhost:7474/db/data/");
+#graph = startGraph("http://localhost:7474/db/data/");
 
 getOptionNodeByName <- function(graph, name){
   getLabeledNodes(graph, "Option", name = name)[[1]];
 }
 
 getOptionNodeById <- function(graph, optionId){
+  print(paste("Getting option node",optionId));
   getLabeledNodes(graph, "Option", optionId = optionId)[[1]];
 }
 
@@ -44,10 +45,11 @@ getFeatureNamesByOptionName <- function(graph, name){
 }
 
 getFeatureIdsByOptionId <- function(graph, optionId){
+  print(paste("Getting Features of option",optionId));
   query <- "MATCH (a:Option {optionId:{optionId}})-[r:HAS_FEATURE]->(b:Feature)
             RETURN DISTINCT b.featureId
             ORDER BY b.featureId";
-  results<-cypher(graph, query, featureId = featureId);  
+  results<-cypher(graph, query, optionId = optionId);  
   #names(results)<-c("featureId");
   results;
 }
@@ -84,7 +86,7 @@ getRandomRelatedOptions <- function(graph, optionId, maxItems = 2) {
 }
 
 #Get features of menu item 1 that are NOT in menu item 2
-getMenuItemDifference <- function(graph, optionId_1, optionId_2){
+getOptionDifference <- function(graph, optionId_1, optionId_2){
   features1 <- getFeatureIdsByOptionId(graph, optionId_1);
   features2 <- getFeatureIdsByOptionId(graph, optionId_2);
   '%nin%' <- Negate('%in%');
@@ -97,7 +99,7 @@ getMenuItemDifference <- function(graph, optionId_1, optionId_2){
 saveChoicePathToSession <- function(graph, sessionNode, choiceIteration, previousOptionId, optionId) {
   if(choiceIteration==1) {
     choiceNode <- getOptionNodeById(graph, optionId);
-    createRel(sessionNode, "MADE_CHOICE", optionId, choiceId=1);
+    createRel(sessionNode, "MADE_CHOICE", choiceNode, choiceId=1);
     createRel(sessionNode, "LAST_CHOICE", choiceNode);
   }
   else {
@@ -123,6 +125,7 @@ assignFeaturePreferenceToSession <- function(graph, sessionNode, featureId, incr
 }
 
 assignMultipleFeaturePreferencesToSession <- function(graph, session, features, incrementValue){
+  print("Assigning multiple feature preferences to session");
   sapply(features, function(feature) assignFeaturePreferenceToSession(graph, session, feature, incrementValue))  
 }
 
