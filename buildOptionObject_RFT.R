@@ -63,9 +63,12 @@ getEventObject <- function(url, date){
 cleanRftDescription <- function(description){
   #Remove quotation marks
   gsub("[\'\"]","", description);
+
 }
 
 cleanRftLabels <- function(labels){
-  gsub(" \\| ", ",", labels);
+  desc <- gsub(" \\| ", ",", labels);
   
+  #Remove spaces
+  gsub("\\s", "", desc);
 }
