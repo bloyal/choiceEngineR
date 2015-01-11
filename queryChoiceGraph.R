@@ -9,7 +9,6 @@ getOptionNodeByName <- function(graph, name){
 }
 
 getOptionNodeById <- function(graph, optionId){
-  print(paste("Getting option node",optionId));
   getLabeledNodes(graph, "Option", optionId = optionId)[[1]];
 }
 
@@ -40,17 +39,17 @@ getFeatureNamesByOptionName <- function(graph, name){
             RETURN DISTINCT b.name
             ORDER BY b.name";
   results<-cypher(graph, query, name=name);  
-  #names(results)<-c("name");
+  names(results)<-c("name");
   results;
 }
 
 getFeatureIdsByOptionId <- function(graph, optionId){
-  print(paste("Getting Features of option",optionId));
+#  print(paste("Getting Features of option",optionId));
   query <- "MATCH (a:Option {optionId:{optionId}})-[r:HAS_FEATURE]->(b:Feature)
             RETURN DISTINCT b.featureId
             ORDER BY b.featureId";
   results<-cypher(graph, query, optionId = optionId);  
-  #names(results)<-c("featureId");
+  names(results)<-c("featureId");
   results;
 }
 
@@ -61,6 +60,7 @@ getRandomMenuItems <- function(graph, maxItems=1){
             ORDER BY r 
             LIMIT ", maxItems, sep="");
   results<-cypher(graph, query);  
+  names(results)<-c("name", "optionId");
   results;
 }
 
@@ -69,7 +69,7 @@ getAllRelatedOptions <- function(graph, optionId){
             RETURN DISTINCT c.name, c.optionId
             ORDER BY c.name";
   results<-cypher(graph, query, optionId=optionId);  
-  #names(results)<-c("optionId");
+  names(results)<-c("name", "optionId");
   results;
 }
 
@@ -81,7 +81,7 @@ getRandomRelatedOptions <- function(graph, optionId, maxItems = 2) {
             ORDER BY r 
             LIMIT ", maxItems, sep="")
   results<-cypher(graph, query, name=itemName);  
-  #names(results)<-c("name");
+  names(results)<-c("name","optionId");
   results;
 }
 
@@ -116,16 +116,17 @@ saveChoicePathToSession <- function(graph, sessionNode, choiceIteration, previou
 
 assignFeaturePreferenceToSession <- function(graph, sessionNode, featureId, incrementValue){
   query <- paste(
-    "MATCH (s:Session {sessionId:", sessionNode$sessionId, "}), (f:Feature {featureId:'", featureId, "'}) ", 
+    "MATCH (s:Session {sessionId:", sessionNode$sessionId, "}), (f:Feature {featureId:", featureId, "}) ", 
     "MERGE (s) -[r:HAS_AFFINITY_FOR]-> (f) ",
     "ON CREATE SET r.score = ", incrementValue, " ",
     "ON MATCH SET r.score = r.score + ", incrementValue,
     sep="");
+  #print(query);
   cypher(graph, query);  
 }
 
 assignMultipleFeaturePreferencesToSession <- function(graph, session, features, incrementValue){
-  print("Assigning multiple feature preferences to session");
+  #print("Assigning multiple feature preferences to session");
   sapply(features, function(feature) assignFeaturePreferenceToSession(graph, session, feature, incrementValue))  
 }
 

@@ -24,22 +24,22 @@ testRun <- function(graph){
                                    "\nor (2) ", options[2,1], ": ", sep="")),];
     print(paste("Choice is ",choice[1], sep=""));
     saveChoicePathToSession(graph, session, i, previousChoice[[2]], choice[[2]]);
-    print("Choice saved");
+    #print("Choice saved");
     nonChoice<-options[options[,2]!=choice[,2],];
-    print(paste("Non choice is ",nonChoice[1], sep=""));
-    
+    #print(paste("Non choice is ",nonChoice[1], sep=""));
+    #print(paste(choice[[2]], nonChoice[[2]]));
     #Store positive preference scores in graph
     chosenFeatures<-getOptionDifference(graph, choice[[2]], nonChoice[[2]]);
-    print("Chosen features found");
+    #print("Chosen features found");
+    #print(chosenFeatures);
     assignMultipleFeaturePreferencesToSession(graph, session, chosenFeatures, 1);
     
     #Store negative preference scores in graph
     nonChosenFeatures<-getOptionDifference(graph, nonChoice[[2]], choice[[2]]);
     assignMultipleFeaturePreferencesToSession(graph, session, nonChosenFeatures, -1)
 
-    print("Getting top option info");
+    #print("Getting top option info");
     topOptions <- getTopOptionInfo(graph, session, 10);
-    print(topOptions);
     topTenScoreData <- rbind(topTenScoreData, topOptions$score);
     topTenMSEData <- rbind(topTenMSEData, topOptions$mse);
 
@@ -50,7 +50,7 @@ testRun <- function(graph){
     print(topOptions[1:5,]);
 
     solutionCheck <- doesValidSolutionExist(topOptions, i);
-    options <- data.frame(topOptions[1:2,"optionId"]);
+    options <- data.frame(topOptions[1:2,]);
   }
 print(paste("May we suggest ", topOptions[1,"name"], "?", sep=""))
 }
