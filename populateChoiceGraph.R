@@ -35,7 +35,7 @@ getTestOptionObject <- function(){
       creationDt = Sys.time(),
       #optional elements
       keywords = "fire, rescue, emergency, plastic, wheels, red",
-      optionDate = "2015-01-03",
+      optionDt = "2015-01-03",
       optionTime = "5:00 PM",
       imageSrc = "http://ecx.images-amazon.com/images/I/61tDtJTMemL._SY355_.jpg",
       locations = list(
@@ -75,7 +75,7 @@ getTestOptionObject <- function(){
       creationDt = Sys.time(),
       #optional elements
       keywords = "ocean, underwater, sea, Beatles, submarine, nautical, yellow",
-      optionDate = "2015-01-02",
+      optionDt = "2015-01-02",
       optionTime = "7:00 PM",
       locations = list(
         list(
@@ -163,7 +163,7 @@ createOptionNode <- function(transaction, option){
               keywords:{keywords},
               creatorUid:{creatorUid},
               creationDt:{creationDt},
-              optionDate:{optionDate},
+              optionDt:{optionDt},
               imageSrc:{imageSrc}
               })", sep="");
   option$name
@@ -174,7 +174,7 @@ createOptionNode <- function(transaction, option){
                keywords = option$keywords,
                creatorUid = option$creatorUid,
                creationDt = option$creationDt,
-               optionDate = option$optionDate,
+               optionDt = option$optionDt,
                imageSrc = option$imageSrc,
                locationName = option$locationName,
                locationAddress = option$locationAddress,

@@ -8,19 +8,24 @@ getHTML <- function(url){
   html(url);
 }
 
-scrapeRftEvents <- function(html, date, requestDelay = 1){
+scrapeRftEvents <- function(html, date, 
+                            root = "http://www.riverfronttimes.com", 
+                            requestDelay = 1){
   
-  root<-"http://www.riverfronttimes.com";
+  #download event html for specified date
+  mainHTML <- getRftDateHome(date);
   
-  mainHTML <- getRftDateHome("2015-01-11");
   #Pull event links out of main date page
   eventURLs <- getEventUrls(mainHTML, root);
   
-  eventObject <- list();
-  for (i in 1:length(eventUrls)){
-    eventObject[[i]] <- getEventObject(eventUrls[i], date);
-  }
-  
+  createMultipleRftEventObjects(eventURLs, date);
+}
+
+createMultipleRftEventObjects <- function(eventURLs, date){
+    eventObject <- list();
+    for (i in 1:length(eventURLs)){
+      eventObject[[i]] <- getEventObject(eventURLs[i], date);
+    } ;
 }
 
 getRftDateHome <- function(date, maxEvents = 500){
@@ -53,10 +58,20 @@ getEventObject <- function(url, date){
             cleanRftLabels();
   
   labels <- paste(keywords, "Events", sep=",");
-  
   creatorUid <- "bloyal";
-  
   creationDt <- Sys.time();
+  optionDt <- date;
+  
+  imageSrc <- eventHTML %>% 
+                html_nodes(".event_article img.framed.photo") %>% 
+                html_attr("src");
+  
+  location <- list(
+      locationName = provider,
+      locationAddressStreet = eventHTML %>% html_nodes(".address .street-address") %>% html_text(),
+      locationAddressLocality = eventHTML %>% html_nodes(".address .locality") %>% html_text(),
+      locationAddressRegion= eventHTML %>% html_nodes(".address .region") %>% html_text()
+    );
   
 }
 
@@ -68,7 +83,6 @@ cleanRftDescription <- function(description){
 
 cleanRftLabels <- function(labels){
   desc <- gsub(" \\| ", ",", labels);
-  
-  #Remove spaces
+  #Convert multi-word categories into camel-case
   gsub("\\s", "", desc);
 }
