@@ -1,31 +1,37 @@
 # buildOptionObject_RFT.R
 library(rvest);
+library(stringr);
 
-url<-"http://www.riverfronttimes.com/events/search/date:[2015-01-11]//perPage:500/"
-# getHTML(url);
+#url<-"http://www.riverfronttimes.com/events/search/date:[2015-01-11]//perPage:500/"
+#url2<-"http://www.riverfronttimes.com/events/cirque-du-soleil-varekai-2533361/"
+#getHTML(url);
 
 getHTML <- function(url){
   html(url);
 }
 
-scrapeRftEvents <- function(html, date, 
+scrapeRftEvents <- function(date, 
                             root = "http://www.riverfronttimes.com", 
                             requestDelay = 1){
   
   #download event html for specified date
   mainHTML <- getRftDateHome(date);
+  Sys.sleep(requestDelay);
   
   #Pull event links out of main date page
   eventURLs <- getEventUrls(mainHTML, root);
   
-  createMultipleRftEventObjects(eventURLs, date);
+  createMultipleRftEventObjects(eventURLs, date, requestDelay);
 }
 
-createMultipleRftEventObjects <- function(eventURLs, date){
+createMultipleRftEventObjects <- function(eventURLs, date, requestDelay){
     eventObject <- list();
     for (i in 1:length(eventURLs)){
-      eventObject[[i]] <- getEventObject(eventURLs[i], date);
-    } ;
+        print(paste("Downloading event", i));
+        eventObject[[i]] <- getEventObject(eventURLs[i], date);
+        Sys.sleep(requestDelay);
+    }
+    eventObject;
 }
 
 getRftDateHome <- function(date, maxEvents = 500){
@@ -41,38 +47,56 @@ getEventUrls <- function(html, root){
 }
 
 getEventObject <- function(url, date){
-  eventHTML <- getHTML(url);
+  eventHTML <- getHTML(url)
   
-  name <- eventHTML %>% html_nodes("h1") %>% html_text();
+  list(
+    name = eventHTML %>% html_nodes("h1") %>% html_text(),
+    description = eventHTML %>% 
+                    html_nodes("p.description") %>% 
+                    html_text() %>% 
+                    cleanRftDescription(),
+    provider = eventHTML %>% html_nodes(".org") %>% html_text(),
+    keywords = eventHTML %>% 
+              html_nodes("p.Event_CategoryTree") %>% 
+              html_text() %>%
+              cleanRftLabels(),
+    labels = paste(eventHTML %>% 
+                     html_nodes("p.Event_CategoryTree") %>% 
+                     html_text() %>%
+                     cleanRftLabels(), "Event", sep=","),
+    creatorUid = "bloyal",
+    creationDt = Sys.time(),
+    optionDt = date,
+    imageSrc = eventHTML %>% 
+                  html_nodes(".event_article img.framed.photo") %>% 
+                  html_attr("src"),
+    location = list(
+        locationName = eventHTML %>% html_nodes(".org") %>% html_text(),
+        locationAddressStreet = eventHTML %>% html_nodes(".address .street-address") %>% html_text(),
+        locationAddressLocality = eventHTML %>% html_nodes(".address .locality") %>% html_text(),
+        locationAddressRegion= eventHTML %>% html_nodes(".address .region") %>% html_text()
+      ),
+    measures = list (
+      list(
+        name = "price",
+        value = getRftEventPrice(eventHTML),
+        units = "USD"
+        )
+      )
+  );
+}
+
+getRftEventPrice <- function(eventHTML){
+  price <- eventHTML %>% html_nodes(".event_info p") %>% html_text();
+  pattern <- "Price:\\s*\\$(\\d+\\.*\\d*)-*";
+  price <- as.numeric(str_match(price, pattern)[1,2]);
   
-  description <- eventHTML %>% 
-                  html_nodes("p.description") %>% 
-                  html_text() %>% 
-                  cleanRftDescription();
-  
-  provider <- eventHTML %>% html_nodes(".org") %>% html_text();
-  
-  keywords <- eventHTML %>% 
-            html_nodes("p.Event_CategoryTree") %>% 
-            html_text() %>%
-            cleanRftLabels();
-  
-  labels <- paste(keywords, "Events", sep=",");
-  creatorUid <- "bloyal";
-  creationDt <- Sys.time();
-  optionDt <- date;
-  
-  imageSrc <- eventHTML %>% 
-                html_nodes(".event_article img.framed.photo") %>% 
-                html_attr("src");
-  
-  location <- list(
-      locationName = provider,
-      locationAddressStreet = eventHTML %>% html_nodes(".address .street-address") %>% html_text(),
-      locationAddressLocality = eventHTML %>% html_nodes(".address .locality") %>% html_text(),
-      locationAddressRegion= eventHTML %>% html_nodes(".address .region") %>% html_text()
-    );
-  
+  if (is.na(price)){
+    0;
+  }
+  else{
+    price;
+  }
 }
 
 cleanRftDescription <- function(description){

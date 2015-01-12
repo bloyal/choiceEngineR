@@ -41,27 +41,36 @@ getTestOptionObject <- function(){
       locations = list(
         list(
           locationName = "Gateway Arch",
-          locationAddress = "11 North 4th Street, St. Louis, MO 63102",
+          locationAddressStreet = "11 North 4th Street",
+          locationAddressLocality = "St. Louis",
+          locationAddressRegion = "MO",
+          locationAddressZip = "63021",
           locationGPS = "38.624691,-90.184776"
           ),
         list(
           locationName = "Busch Stadium",
-          locationAddress = "800 N Broadway, St. Louis, MO 63102",
+          locationAddressStreet = "800 N Broadway",
+          locationAddressLocality = "St. Louis",
+          locationAddressRegion = "MO",
+          locationAddressZip = "63021",
           locationGPS = "33.624691,-94.184776"
           )
         ),
       measures = list (
-        "price" = list (
-          "value"=11.95,
-          "unit"="USD"
+        list (
+          name = "price",
+          value=11.95,
+          unit="USD"
           ),
-        "weight" = list (
-          "value" = 1.5,
-          "unit" = "grams"
+        list (
+          name = "weight",
+          value = 1.5,
+          unit = "grams"
           ),
-        "length" = list (
-          "value" = 2,
-          "unit" = "feet"
+        list (
+          name = "length",
+          value = 2,
+          unit = "feet"
           )
         )
       ),
@@ -80,18 +89,23 @@ getTestOptionObject <- function(){
       locations = list(
         list(
           locationName = "Gateway Arch",
-          locationAddress = "11 North 4th Street, St. Louis, MO 63102",
+          locationAddressStreet = "11 North 4th Street",
+          locationAddressLocality = "St. Louis",
+          locationAddressRegion = "MO",
+          locationAddressZip = "63021",
           locationGPS = "38.624691,-90.184776"
         )
       ),
       measures = list(
-        "price" = list (
-          "value"=15.25,
-          "unit"="USD"
+        list (
+          name = "price",
+          value = 15.25,
+          unit = "USD"
         ),
-        "volume" = list (
-          "value"=12,
-          "unit"="oz"
+        list (
+          name = "volume",
+          value=12,
+          unit="oz"
           )
         )
       ),
@@ -106,9 +120,10 @@ getTestOptionObject <- function(){
       #optional elements
       keywords = "prince, yummy, purple, sea, red, music, drink",
       measures = list (
-        "price" = list (
-          "value" = 3.99,
-          "unit" = "USD"
+        list (
+          name = "price",
+          value = 3.99,
+          unit = "USD"
           )
         )
       )
@@ -278,12 +293,18 @@ createLocationNode <- function(transaction, location){
                  CREATE (f:Feature:Location {
                  featureId: max_feature_id + 1,
                  name:{name},
-                  address:{address},
+                  street:{street},
+                  locality:{locality},
+                  region:{region},
+                  zip:{zip},
                   gps:{gps}
                  })", sep="");
   appendCypher(transaction, query, 
                name = location$locationName, 
-               address=location$locationAddress,
+               street=location$locationAddressStreet,
+               locality=location$locationAddressLocality,
+               region=location$locationAddressRegion,
+               zip=location$locationAddressZip,
                gps=location$locationGPS);
 }
 
