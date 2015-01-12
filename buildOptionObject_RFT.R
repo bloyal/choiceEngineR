@@ -60,10 +60,7 @@ getEventObject <- function(url, date){
               html_nodes("p.Event_CategoryTree") %>% 
               html_text() %>%
               cleanRftLabels(),
-    labels = paste(eventHTML %>% 
-                     html_nodes("p.Event_CategoryTree") %>% 
-                     html_text() %>%
-                     cleanRftLabels(), "Event", sep=","),
+    labels = "Event",
     creatorUid = "bloyal",
     creationDt = Sys.time(),
     optionDt = date,
