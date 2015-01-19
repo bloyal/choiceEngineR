@@ -1,6 +1,10 @@
 #solutionCheck.R
 #Check to see if we've identified a valid solution to know when to stop asking questions
 
+doesValidSolutionExistBasic <- function(cycle){
+  
+}
+
 doesValidSolutionExist <- function(topOptions, cycle){
   if (cycle < 3) {return(FALSE)};
   if (cycle > 10) {return(TRUE)};

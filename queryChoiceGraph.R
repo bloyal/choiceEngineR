@@ -53,7 +53,7 @@ getFeatureIdsByOptionId <- function(graph, optionId){
   results;
 }
 
-getRandomMenuItems <- function(graph, maxItems=1){
+getRandomOptions <- function(graph, maxItems=1){
   query <- paste("MATCH (a:Option) 
             WITH a, rand() as r 
             RETURN a.name, a.optionId
@@ -62,6 +62,15 @@ getRandomMenuItems <- function(graph, maxItems=1){
   results<-cypher(graph, query);  
   names(results)<-c("name", "optionId");
   results;
+}
+
+getRandomOptionNodes <- function(graph, maxItems = 1){
+  query <- paste("MATCH (a:Option) 
+            WITH a, rand() as r 
+            RETURN a
+            ORDER BY r 
+            LIMIT ", maxItems, sep="");
+  getNodes(graph, query);  
 }
 
 getAllRelatedOptions <- function(graph, optionId){
@@ -93,6 +102,14 @@ getOptionDifference <- function(graph, optionId_1, optionId_2){
   features1$featureId[features1$featureId %nin% features2$optionId_1];
 }
 
+#get features of option 1 that are NOT associated with option 2
+getOptionNodeDifference <- function(optionNode1, optionNode2){
+  features1 <- unlist(strsplit(optionNode1$keywords,","))
+  features2 <- unlist(strsplit(optionNode2$keywords,","))
+  '%nin%' <- Negate('%in%');
+  features1[features1 %nin% features2];
+}
+
 #Create path that starts with session node and travels through each choice in order. Also
 #creates a "FINAL_CHOICE" relationship between the session node and the last choice to make
 #reporting easier
@@ -114,6 +131,32 @@ saveChoicePathToSession <- function(graph, sessionNode, choiceIteration, previou
   }
 }
 
+#Same as above, but uses choice objects to simplify logic
+saveChoiceNodeToSession <- function(graph, sessionNode, choiceIteration, previousChoiceNode, choiceNode) {
+  if(choiceIteration==1) {
+    createRel(sessionNode, "MADE_CHOICE", choiceNode, choiceId=1);
+    createRel(sessionNode, "LAST_CHOICE", choiceNode);
+  }
+  else {
+    createRel(previousChoiceNode, "MADE_CHOICE", choiceNode, choiceId=choiceIteration);
+    
+    lastChoiceQuery <- "MATCH (s:Session {sessionId:{sessionId}})-[r:LAST_CHOICE]->() RETURN r";
+    rel = getSingleRel(graph, lastChoiceQuery, sessionId=sessionNode$sessionId);
+    delete(rel);
+    createRel(sessionNode, "LAST_CHOICE", choiceNode, sessionId=sessionNode$sessionId);
+  }
+}
+
+getSelectionCode <- function(options){
+  as.numeric(readline(paste("Please select either: \n(1) ",options[[1]]$name, 
+                            "\nor (2) ", options[[2]]$name, ": ", sep="")));
+}
+
+getNonSelectionCode <- function(selectionCode){
+  if (selectionCode == 1) {2}
+  else {1};
+}
+
 assignFeaturePreferenceToSession <- function(graph, sessionNode, featureId, incrementValue){
   query <- paste(
     "MATCH (s:Session {sessionId:", sessionNode$sessionId, "}), (f:Feature {featureId:", featureId, "}) ", 
@@ -125,9 +168,23 @@ assignFeaturePreferenceToSession <- function(graph, sessionNode, featureId, incr
   cypher(graph, query);  
 }
 
+assignFeaturePreferenceNameToSession <- function(graph, sessionNode, featureName, incrementValue){
+  print(sessionNode$sessionId);
+  print(featureName);
+  query <- paste(
+    "MATCH (s:Session {sessionId:{sessionId}}), (f:Feature {name:{name}}) ", 
+    "MERGE (s) -[r:HAS_AFFINITY_FOR]-> (f) ",
+    "ON CREATE SET r.score = ", incrementValue, " ",
+    "ON MATCH SET r.score = r.score + ", incrementValue,
+    sep="");
+  print(query);
+  cypher(graph, query, sessionId=sessionNode$sessionId, name=featureName);  
+}
+
 assignMultipleFeaturePreferencesToSession <- function(graph, session, features, incrementValue){
   #print("Assigning multiple feature preferences to session");
-  sapply(features, function(feature) assignFeaturePreferenceToSession(graph, session, feature, incrementValue))  
+  #sapply(features, function(feature) assignFeaturePreferenceToSession(graph, session, feature, incrementValue));  
+  sapply(features, function(feature) assignFeaturePreferenceNameToSession(graph, session, feature, incrementValue));  
 }
 
 addOrIncrementList <- function(elements, list, incrementValue){ 
