@@ -1,8 +1,6 @@
 #get high scoring options related to a node
 
 getTopOptionInfo <- function(graph, session, maxItems=5){
-#  print("Querying for top options");
-  #print(session$sessionId);
   query<-paste("MATCH (s:Session {sessionId:{sessionId}})-[r:HAS_AFFINITY_FOR]->(f:Feature)
                 WITH s, max(abs(r.score)) as max_score
                 MATCH (s)-[r:HAS_AFFINITY_FOR]->(f:Feature)
@@ -15,7 +13,6 @@ getTopOptionInfo <- function(graph, session, maxItems=5){
                 ORDER by score desc, mse, rand
                LIMIT ", maxItems, sep="");
   results<-cypher(graph, query, sessionId=session$sessionId);  
-  #print(results);
   results;
 }
 
@@ -29,4 +26,13 @@ getTopFeatureInfo <- function(graph, session, maxItems=5){
   
   results<-cypher(graph, query, sessionId=session$sessionId);  
   results;
+}
+
+getTopOptionNodes <- function(topOptions){
+  print("Top Options are:");
+  print(topOptions[1:5,]);
+  options<-list(
+    getOptionNodeById(graph, topOptions$optionId[[1]]),
+    getOptionNodeById(graph, topOptions$optionId[[2]])
+    )
 }

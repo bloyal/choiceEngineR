@@ -1,7 +1,6 @@
 #Test Run
 source("~/GitHub/choiceEngineR/queryChoiceGraph.R");
-source("~/GitHub/choiceEngineR/scoreOptions.R");
-source("~/GitHub/choiceEngineR/solutionCheck.R");
+
 
 #---------Test run--------
 testRun <- function(graph){
@@ -11,12 +10,16 @@ testRun <- function(graph){
   
   #Initialize on two random options
   options<-getRandomOptionNodes(graph,2); #Returns option nodes
+  
+  #Initialize temporary variables
   featureScores <- list();
   choice <- list();
   topTenScoreData<-data.frame();
   topTenMSEData<-data.frame();
   solutionCheck <- FALSE;
   i<-0;
+  
+  #Continue loop until solution is found
   while (solutionCheck == FALSE) {
     #Print cycle number to console
     i<-i+1;
@@ -29,6 +32,7 @@ testRun <- function(graph){
     selectionCode <- getSelectionCode(options)
     
     #Pull choice node
+    print("Saving choice");
     choice<-options[[selectionCode]];
     
     #Pull non-choice node
@@ -38,38 +42,26 @@ testRun <- function(graph){
     print(paste("Choice is not ",nonChoice$name, sep=""));
     
     #Save choice node to session
+    print("Saving choice to session");
     saveChoiceNodeToSession(graph, session, i, previousChoice, choice);
     
     #Store positive preference scores in graph
+    print("Saving positive preference info");
     chosenFeatures<-getOptionNodeDifference(choice, nonChoice);
     assignMultipleFeaturePreferencesToSession(graph, session, chosenFeatures, 1);
     
     #Store negative preference scores in graph
+    print("Saving negative preference info");
     nonChosenFeatures<-getOptionNodeDifference(nonChoice, choice);
     assignMultipleFeaturePreferencesToSession(graph, session, nonChosenFeatures, -1)
 
     #get next two options
-    options<-getRandomOptionNodes(graph,2); #Returns option nodes
+    print("Retrieving next options");
+    options <- getNextOptions(graph, session);
 
     #check and see if we're finished
-    solutionCheck <- doesValidSolutionExistBasic(i);
-    
-#     #print("Getting top option info");
-#     topOptions <- getTopOptionInfo(graph, session, 10);
-#     topTenScoreData <- rbind(topTenScoreData, topOptions$score);
-#     topTenMSEData <- rbind(topTenMSEData, topOptions$mse);
-# 
-#     print("Top Features are:");
-#     print (getTopFeatureInfo(graph, session, 10));
-# 
-#     print("Top Options are:");
-#     print(topOptions[1:5,]);
-
-    #solutionCheck <- doesValidSolutionExist(topOptions, i);
-#options <- data.frame(topOptions[1:2,]);    
-
-    
+    print("Checking for solution");
+    solutionCheck <- getValidSolutionStatus(graph, session, i);
   }
-#print(paste("May we suggest ", topOptions[1,"name"], "?", sep=""))
 print(paste("May we suggest ", choice$name, "?", sep=""))
 }

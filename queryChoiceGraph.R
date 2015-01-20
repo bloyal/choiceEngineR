@@ -2,6 +2,9 @@
 
 library(RNeo4j);
 
+source("~/GitHub/choiceEngineR/scoreOptions.R");
+source("~/GitHub/choiceEngineR/solutionCheck.R");
+
 #graph = startGraph("http://localhost:7474/db/data/");
 
 getOptionNodeByName <- function(graph, name){
@@ -169,15 +172,12 @@ assignFeaturePreferenceToSession <- function(graph, sessionNode, featureId, incr
 }
 
 assignFeaturePreferenceNameToSession <- function(graph, sessionNode, featureName, incrementValue){
-  print(sessionNode$sessionId);
-  print(featureName);
   query <- paste(
     "MATCH (s:Session {sessionId:{sessionId}}), (f:Feature {name:{name}}) ", 
     "MERGE (s) -[r:HAS_AFFINITY_FOR]-> (f) ",
     "ON CREATE SET r.score = ", incrementValue, " ",
     "ON MATCH SET r.score = r.score + ", incrementValue,
     sep="");
-  print(query);
   cypher(graph, query, sessionId=sessionNode$sessionId, name=featureName);  
 }
 
@@ -199,4 +199,15 @@ addOrIncrementList <- function(elements, list, incrementValue){
     }
   }
   list;
+}
+
+getNextOptions <- function(graph, session){
+#  getRandomOptionNodes(graph,2); #Returns 2 random option nodes
+  getTopOptionNodes(getTopOptionInfo(graph, session, 10)); #Returns 2 options by score and mse
+}
+
+getValidSolutionStatus <- function(graph, session, cycle){
+#  doesValidSolutionExistBasic(cycle);
+  topOptions <- getTopOptionInfo(graph, session, 10);
+  doesValidSolutionExist(topOptions, cycle);
 }
