@@ -29,7 +29,7 @@ doesValidSolutionExist <- function(topOptions, cycle){
    print(paste("95% Threshold Value is ", thresholdValue, sep=""));
   if (scoreValues[1] > thresholdValue) { 
 #     print("Value greater than threshold");
-#     print(paste("Top MSE is ", mseValues[1], sep=""));
+     print(paste("Top MSE is ", mseValues[1], sep=""));
     if (mseValues[1] < 0.1){
 #       print("MSE is less then 10%")
       #If top value is more than 2 sd above mean, and mse is less than 10%, we have a winner!
